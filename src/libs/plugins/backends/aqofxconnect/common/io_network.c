@@ -62,6 +62,7 @@ int AO_Provider_SendAndReceive(AB_PROVIDER *pro, AB_USER *u, const uint8_t *p, u
 
   /* setup connection */
   rv=_createConnection(pro, u, &sess);
+  DBG_ERROR(AQOFXCONNECT_LOGDOMAIN, "RBW Connect (%d)", rv);
   if (rv) {
     DBG_ERROR(AQOFXCONNECT_LOGDOMAIN, "Could not create connection");
     GWEN_Gui_ProgressLog2(0, GWEN_LoggerLevel_Error, I18N("Could not create connection (%d)"), rv);
@@ -71,8 +72,9 @@ int AO_Provider_SendAndReceive(AB_PROVIDER *pro, AB_USER *u, const uint8_t *p, u
   /* send request */
   GWEN_Gui_ProgressLog(0, GWEN_LoggerLevel_Info, I18N("Sending request..."));
   rv=GWEN_HttpSession_SendPacket(sess, "POST", p, plen);
+  DBG_ERROR(AQOFXCONNECT_LOGDOMAIN, "RBW POST (%d)", rv);
   if (rv<0) {
-    DBG_INFO(AQOFXCONNECT_LOGDOMAIN, "here (%d)", rv);
+    DBG_ERROR(AQOFXCONNECT_LOGDOMAIN, "Error sending packet (%d)", rv);
     GWEN_Gui_ProgressLog(0, GWEN_LoggerLevel_Error, I18N("Network error while sending request"));
     GWEN_HttpSession_Fini(sess);
     GWEN_HttpSession_free(sess);
@@ -83,8 +85,9 @@ int AO_Provider_SendAndReceive(AB_PROVIDER *pro, AB_USER *u, const uint8_t *p, u
   GWEN_Gui_ProgressLog(0, GWEN_LoggerLevel_Info, I18N("Waiting for response..."));
   rbuf=GWEN_Buffer_new(0, 1024, 0, 1);
   rv=GWEN_HttpSession_RecvPacket(sess, rbuf);
+  DBG_ERROR(AQOFXCONNECT_LOGDOMAIN, "RBW Recv (%d)", rv);
   if (rv<0) {
-    DBG_INFO(AQOFXCONNECT_LOGDOMAIN, "Error receiving packet (%d)", rv);
+    DBG_ERROR(AQOFXCONNECT_LOGDOMAIN, "Error receiving packet (%d)", rv);
     GWEN_Gui_ProgressLog(0, GWEN_LoggerLevel_Error, I18N("Network error while waiting for response"));
     GWEN_Buffer_free(rbuf);
     GWEN_HttpSession_Fini(sess);
@@ -122,12 +125,15 @@ int _createConnection(AB_PROVIDER *pro, AB_USER *u, GWEN_HTTP_SESSION **pSess)
   const char *addr;
   const char *s;
 
+  DBG_ERROR(AQOFXCONNECT_LOGDOMAIN, "RBW _createConnection");
+
   /* take bank addr from user */
   addr=AO_User_GetServerAddr(u);
   if (!(addr && *addr)) {
     DBG_ERROR(AQOFXCONNECT_LOGDOMAIN, "User has no valid address settings");
     return GWEN_ERROR_INVALID;
   }
+  DBG_ERROR(AQOFXCONNECT_LOGDOMAIN, "RBW addr %s", addr);
 
   sess=AB_HttpSession_new(pro, u, addr, "https", 443);
 
@@ -136,10 +142,13 @@ int _createConnection(AB_PROVIDER *pro, AB_USER *u, GWEN_HTTP_SESSION **pSess)
 
   GWEN_HttpSession_SetHttpContentType(sess, "application/x-ofx");
 
+  DBG_ERROR(AQOFXCONNECT_LOGDOMAIN, "RBW HttpVMajor %d", AO_User_GetHttpVMajor(u));
   GWEN_HttpSession_SetHttpVMajor(sess, AO_User_GetHttpVMajor(u));
+  DBG_ERROR(AQOFXCONNECT_LOGDOMAIN, "RBW HttpVMinor %d", AO_User_GetHttpVMinor(u));
   GWEN_HttpSession_SetHttpVMinor(sess, AO_User_GetHttpVMinor(u));
 
   s=AO_User_GetHttpUserAgent(u);
+  DBG_ERROR(AQOFXCONNECT_LOGDOMAIN, "RBW userAgent %s", (s && *s)?s:"AqBanking")
   GWEN_HttpSession_SetHttpUserAgent(sess, (s && *s)?s:"AqBanking");
 
   /* init session */
